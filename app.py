@@ -2,11 +2,10 @@ import datetime
 import os
 
 import jwt
+from bson import ObjectId
+from bson.json_util import dumps
 from flask import Flask, request
 from pymongo import MongoClient
-from flask_login import LoginManager, login_user, login_required
-from bson.json_util import dumps
-from bson import ObjectId
 
 from User import User
 
@@ -17,17 +16,6 @@ client = MongoClient()
 db = client["food-recom"]
 users = db.users
 restaurants = db.restaurants
-
-login_manager = LoginManager()
-login_manager.init_app(app)
-
-
-@login_manager.user_loader
-def load_user(user_id):
-    user = users.find_one({'_id': user_id})
-    if not user:
-        return None
-    return User(user_id=user['_id'], email=user['email'])
 
 
 def encode_jwt(user_id):
@@ -60,7 +48,6 @@ def login():
     user = users.find_one({'email': email})
     if user and user['password'] == password:
         user = User(user_id=str(user['_id']), email=user['email'])
-        login_user(user)
         token = encode_jwt(user.id)
         return {
             'message': 'Login successful',
@@ -91,7 +78,6 @@ def index():
 
 
 @app.route("/restaurants")
-@login_required
 def index_restaurants():
     data = dumps([restaurants.find({})])
     response = app.response_class(
